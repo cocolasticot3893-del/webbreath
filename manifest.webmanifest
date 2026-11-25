@@ -1,0 +1,20 @@
+{
+  "name": "WebBreath — Entraînement Respiratoire & RMT",
+  "short_name": "WebBreath",
+  "description": "Entraînement respiratoire neuro-symbolique (POWERbreathe K5, Plus, EX1, Isocapnic, Airofit, TymeWear) et télémétrie Intervals.icu offline-first.",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#060d18",
+  "theme_color": "#060d18",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}

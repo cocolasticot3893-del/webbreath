@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="WebBreath Logo">
+  <defs>
+    <linearGradient id="wb-grad" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <linearGradient id="wb-lobe-fill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.24" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.14" />
+    </linearGradient>
+    <radialGradient id="wb-halo" cx="50%" cy="52%" r="45%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.22" />
+      <stop offset="65%" stop-color="#10b981" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#060d18" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Fond abyssal arrondi compatible icône maskable -->
+  <rect width="128" height="128" rx="24" fill="#060d18" />
+
+  <!-- Halo oxygène subtil -->
+  <circle cx="64" cy="66" r="50" fill="url(#wb-halo)" />
+
+  <!-- Poumon gauche géométrique stylisé -->
+  <path
+    d="M57 42 C49 38, 36 42, 30 55 C25 66, 24 83, 27 93 C29 99, 36 102, 44 100 C51 98, 56 93, 57 86 Z"
+    fill="url(#wb-lobe-fill)"
+    stroke="url(#wb-grad)"
+    stroke-width="4.5"
+    stroke-linejoin="round"
+  />
+
+  <!-- Poumon droit géométrique stylisé -->
+  <path
+    d="M71 42 C79 38, 92 42, 98 55 C103 66, 104 83, 101 93 C99 99, 92 102, 84 100 C77 98, 72 93, 71 86 Z"
+    fill="url(#wb-lobe-fill)"
+    stroke="url(#wb-grad)"
+    stroke-width="4.5"
+    stroke-linejoin="round"
+  />
+
+  <!-- Trachée et bifurcation bronchique -->
+  <path
+    d="M64 20 V42 M64 42 L46 56 M64 42 L82 56"
+    fill="none"
+    stroke="#06b6d4"
+    stroke-width="4.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Ramifications alvéolaires symétriques -->
+  <path
+    d="M46 56 L38 68 M46 56 L49 71 M82 56 L90 68 M82 56 L79 71"
+    fill="none"
+    stroke="#10b981"
+    stroke-width="3.2"
+    stroke-linecap="round"
+    opacity="0.9"
+  />
+
+  <!-- Onde de flux ventilatoire / spirale d'air -->
+  <path
+    d="M22 80 C34 80, 40 68, 50 75 C58 81, 61 92, 64 92 C67 92, 70 81, 78 75 C88 68, 94 80, 106 80"
+    fill="none"
+    stroke="#06b6d4"
+    stroke-width="3.8"
+    stroke-linecap="round"
+  />
+  <circle cx="64" cy="20" r="3.5" fill="#10b981" />
+</svg>

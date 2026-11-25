@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://intervals.icu https://generativelanguage.googleapis.com https://script.google.com https://script.googleusercontent.com; object-src 'none'; base-uri 'self';"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#060d18" />
+    <meta
+      name="description"
+      content="WebBreath — Entraînement respiratoire neuro-symbolique (POWERbreathe K5, Plus, EX1, Isocapnic, Airofit, TymeWear) et télémétrie Intervals.icu offline-first."
+    />
+    <title>WebBreath — RMT &amp; Télémétrie</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./errorGuard.js" defer></script>
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-brand">
+        <img
+          src="./icon.svg"
+          alt=""
+          class="brand-icon"
+          width="34"
+          height="34"
+        />
+        <div class="brand-text">
+          <span class="brand-name">WebBreath</span>
+          <span class="brand-sub">RMT &amp; Télémétrie</span>
+        </div>
+      </div>
+
+      <div class="topbar-status" aria-label="État système et synchronisation">
+        <span id="network-badge" class="status-pill is-online" role="status">
+          En ligne
+        </span>
+        <button
+          type="button"
+          id="outbox-flush-btn"
+          class="status-pill status-pill-btn outbox-pill"
+          title="Synchroniser la file d'attente hors-ligne"
+          aria-live="polite"
+        >
+          Outbox : <strong id="outbox-count">0</strong>
+        </button>
+        <button
+          type="button"
+          id="intervals-status-pill"
+          class="status-pill status-pill-btn is-muted"
+          title="Configurer Intervals.icu dans le coffre-fort"
+        >
+          Intervals : —
+        </button>
+        <button
+          type="button"
+          id="gemini-status-pill"
+          class="status-pill status-pill-btn is-muted"
+          title="Configurer Gemini dans le coffre-fort"
+        >
+          Gemini : —
+        </button>
+        <button
+          type="button"
+          id="open-catalog-directory-btn"
+          class="status-pill status-pill-btn"
+          aria-controls="catalog-directory-view"
+          aria-expanded="false"
+        >
+          Catalogue (28)
+        </button>
+        <button
+          type="button"
+          id="open-vault-btn"
+          class="status-pill status-pill-btn"
+          aria-controls="vault-drawer"
+          aria-expanded="false"
+        >
+          Coffre-Fort
+        </button>
+      </div>
+    </header>
+
+    <div
+      id="global-error-banner"
+      class="error-banner"
+      role="alert"
+      hidden
+    ></div>
+
+    <main class="app-shell">
+      <nav class="step-nav" aria-label="Étapes de séance">
+        <button
+          type="button"
+          id="nav-step-1"
+          class="step-tab is-active"
+          data-step="1"
+        >
+          1. Readiness &amp; Gatekeeper
+        </button>
+        <button
+          type="button"
+          id="nav-step-2"
+          class="step-tab"
+          data-step="2"
+        >
+          2. Pacer &amp; Télémétrie K5
+        </button>
+        <button
+          type="button"
+          id="nav-step-3"
+          class="step-tab"
+          data-step="3"
+        >
+          3. Bilan &amp; Intervals.icu
+        </button>
+      </nav>
+
+      <!-- =================================================================
+           ÉTAPE 1 : READINESS, GATEKEEPER 1-TAP & MODES LIBRES
+           ================================================================= -->
+      <section id="step-1-view" class="step-panel">
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Readiness Physiologique &amp; Références</h1>
+              <p id="readiness-subtitle" class="section-sub">
+                Contexte 7 jours Intervals.icu et constantes respiratoires locales.
+              </p>
+            </div>
+            <button
+              type="button"
+              id="refresh-readiness-btn"
+              class="btn btn-secondary btn-sm"
+            >
+              Actualiser Intervals.icu
+            </button>
+          </div>
+
+          <div class="kpi-grid">
+            <div id="kpi-card-readiness" class="kpi-card is-cyan">
+              <span class="kpi-label">Readiness / HRV</span>
+              <span id="kpi-readiness-val" class="kpi-value">—</span>
+              <span id="kpi-readiness-sub" class="kpi-sub">Hors-ligne ou non configuré</span>
+            </div>
+            <div class="kpi-card is-emerald">
+              <span class="kpi-label">TSB / Charge Vélo 7j</span>
+              <span id="kpi-tsb-val" class="kpi-value">—</span>
+              <span id="kpi-tsb-sub" class="kpi-sub">Veille : — h</span>
+            </div>
+            <div class="kpi-card is-cyan">
+              <span class="kpi-label">S-Index / MEP Réf.</span>
+              <span id="kpi-sindex-val" class="kpi-value">111 / 120</span>
+              <span id="kpi-sindex-sub" class="kpi-sub">cmH₂O (MIP / MEP)</span>
+            </div>
+            <div class="kpi-card is-amber">
+              <span class="kpi-label">BOLT &amp; Dernière Séance</span>
+              <span id="kpi-bolt-val" class="kpi-value">30 s</span>
+              <span id="kpi-bolt-sub" class="kpi-sub">Aucune séance récente</span>
+            </div>
+          </div>
+
+          <div id="equipment-availability-card" class="equipment-card">
+            <div class="equipment-card-header">
+              <span class="equipment-card-title">Matériel disponible</span>
+              <div class="equipment-presets" role="group" aria-label="Pré-réglages matériel">
+                <button
+                  type="button"
+                  class="equipment-preset-btn"
+                  data-equip-preset="ALL_OWNED"
+                >
+                  Maison complet
+                </button>
+                <button
+                  type="button"
+                  class="equipment-preset-btn"
+                  data-equip-preset="TRAVEL_MECH"
+                >
+                  Voyage / Méca
+                </button>
+                <button
+                  type="button"
+                  class="equipment-preset-btn"
+                  data-equip-preset="BODYWEIGHT_ONLY"
+                >
+                  Sans matériel
+                </button>
+              </div>
+            </div>
+            <div class="equipment-chips" role="group" aria-label="Sélection du matériel disponible">
+              <button type="button" class="equipment-chip" data-equip-toggle="PB_K5" aria-pressed="true">
+                POWERbreathe K5
+              </button>
+              <button type="button" class="equipment-chip" data-equip-toggle="PB_PLUS" aria-pressed="true">
+                PB Plus
+              </button>
+              <button type="button" class="equipment-chip" data-equip-toggle="PB_SMART_ADAPTER" aria-pressed="false">
+                Smart Adapter
+              </button>
+              <button type="button" class="equipment-chip" data-equip-toggle="PB_EX1" aria-pressed="true">
+                PB EX1
+              </button>
+              <button type="button" class="equipment-chip" data-equip-toggle="ISOCAPNIC" aria-pressed="true">
+                Isocapnic BWB
+              </button>
+              <button type="button" class="equipment-chip" data-equip-toggle="AIROFIT_MECH" aria-pressed="true">
+                Airofit Méca
+              </button>
+              <button type="button" class="equipment-chip" data-equip-toggle="NASAL_MOUTH_TAPE" aria-pressed="true">
+                Bandes Nasales/Buccales
+              </button>
+              <button type="button" class="equipment-chip" data-equip-toggle="TYMEWEAR" aria-pressed="true">
+                TymeWear
+              </button>
+              <button type="button" class="equipment-chip" data-equip-toggle="SPO2_OXIMETER" aria-pressed="true">
+                Oxymètre SpO₂
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Gatekeeper 1-Tap (Séance Demain / Charge Vélo)</h2>
+              <p class="section-sub">
+                Génération Gemini Structurée avec garde-fou symbolique anti-métaboréflexe.
+              </p>
+            </div>
+            <span id="generation-source-badge" class="badge badge-cyan">
+              Prêt
+            </span>
+          </div>
+
+          <div class="gatekeeper-grid">
+            <button
+              type="button"
+              class="gate-card is-emerald"
+              data-gatekeeper-mode="REPOS_Z1_Z2"
+            >
+              <span class="gate-card-title">Repos ou Z1/Z2 demain</span>
+              <span class="gate-card-desc">
+                Fenêtre Force IMT 30RM, Expiratoire EX1 ou Hyperpnée Isocapnique.
+              </span>
+            </button>
+
+            <button
+              type="button"
+              class="gate-card is-amber"
+              data-gatekeeper-mode="TEMPO_SV1"
+            >
+              <span class="gate-card-title">Tempo / SV1 demain</span>
+              <span class="gate-card-desc">
+                Puissance balistique IMT (45-55 % S-Index), mobilité costale &amp; tolérance CO₂.
+              </span>
+            </button>
+
+            <button
+              type="button"
+              class="gate-card is-coral"
+              data-gatekeeper-mode="SEUIL_VO2_MAX"
+            >
+              <span class="gate-card-title">Seuil / VO₂max demain</span>
+              <span class="gate-card-desc">
+                Blocage force lourde : résonance vagale 0,1 Hz, mobilité 360° &amp; nasal doux.
+              </span>
+            </button>
+
+            <button
+              type="button"
+              class="gate-card is-cyan"
+              data-gatekeeper-mode="PRE_RACE_IMW"
+            >
+              <span class="gate-card-title">Pré-Course / IMW 2×30</span>
+              <span class="gate-card-desc">
+                Protocole Volianitis 2001 à 40 % S-Index pour atténuer le métaboréflexe.
+              </span>
+            </button>
+          </div>
+
+          <div class="free-mode-bar">
+            <button
+              type="button"
+              id="open-free-builder-btn"
+              class="btn btn-secondary"
+            >
+              Constructeur Libre
+            </button>
+            <button
+              type="button"
+              id="open-md-import-btn"
+              class="btn btn-secondary"
+            >
+              Importer Markdown
+            </button>
+            <button
+              type="button"
+              id="step1-k5-import-btn"
+              class="btn btn-ghost"
+            >
+              Importer CSV K5 direct
+            </button>
+            <input
+              type="file"
+              id="step1-k5-file-input"
+              accept=".csv,text/csv"
+              hidden
+            />
+          </div>
+        </article>
+      </section>
+
+      <!-- =================================================================
+           ÉTAPE 2 : PACER, CHRONO BOLT, DROPZONE K5 & EXERCICES
+           ================================================================= -->
+      <section id="step-2-view" class="step-panel" hidden>
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h2 id="session-theme-title" class="section-title">
+                Séance Active
+              </h2>
+              <p id="session-rationale-text" class="section-sub">
+                Sélectionnez un mode Gatekeeper ou un exercice libre.
+              </p>
+            </div>
+            <div class="topbar-status">
+              <span id="session-rules-badge" class="badge badge-emerald">—</span>
+              <button
+                type="button"
+                id="go-step-3-btn"
+                class="btn btn-primary btn-sm"
+              >
+                Finaliser Bilan →
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <div class="step2-top-grid">
+          <!-- PACER CIRCULAIRE ANIMÉ -->
+          <article id="pacer-container" class="card pacer-card" data-phase="idle">
+            <div class="section-header" style="width: 100%; margin-bottom: 0;">
+              <div>
+                <h3 id="pacer-exercise-name" class="section-title">Pacer Respiratoire</h3>
+                <p id="pacer-pattern-badge" class="section-sub">4s / 0s / 6s / 0s</p>
+              </div>
+              <button
+                type="button"
+                id="pacer-mute-btn"
+                class="btn btn-ghost btn-sm"
+                aria-pressed="false"
+              >
+                Audio : ON
+              </button>
+            </div>
+
+            <div class="pacer-stage">
+              <svg
+                class="pacer-svg"
+                viewBox="0 0 200 200"
+                aria-hidden="true"
+              >
+                <circle class="pacer-ring-track" cx="100" cy="100" r="86" />
+                <circle
+                  id="pacer-ring-progress"
+                  class="pacer-ring-progress"
+                  cx="100"
+                  cy="100"
+                  r="86"
+                />
+              </svg>
+              <div id="pacer-orb" class="pacer-orb"></div>
+              <div class="pacer-center-text">
+                <div id="pacer-phase-label" class="pacer-phase-label">Prêt</div>
+                <div id="pacer-phase-timer" class="pacer-phase-timer">4.0 s</div>
+              </div>
+            </div>
+
+            <div class="pacer-counters">
+              <span id="pacer-set-counter" class="meta-chip">Série 1 / 1</span>
+              <span id="pacer-rep-counter" class="meta-chip">0 / 10 reps</span>
+            </div>
+
+            <div class="pacer-controls">
+              <button type="button" id="pacer-toggle-btn" class="btn btn-primary">
+                ▶ Démarrer Pacer
+              </button>
+              <button type="button" id="pacer-stop-btn" class="btn btn-ghost">
+                ■ Reset
+              </button>
+            </div>
+          </article>
+
+          <!-- CHRONO BOLT & APNÉE -->
+          <article class="card bolt-card">
+            <div class="section-header" style="margin-bottom: 0;">
+              <div>
+                <h3 class="section-title">Chrono BOLT &amp; Apnée</h3>
+                <p class="section-sub">Tolérance CO₂ post-expiration calme</p>
+              </div>
+              <span class="spo2-floor-pill">Plancher SpO₂ ≥ 88 %</span>
+            </div>
+
+            <div id="bolt-chrono-display" class="bolt-readout">0.0 s</div>
+            <p id="bolt-chrono-hint" class="muted-note">
+              Démarrez après une expiration nasale normale, stoppez au premier besoin d'inspirer.
+            </p>
+
+            <div class="pacer-controls">
+              <button type="button" id="bolt-toggle-btn" class="btn btn-amber">
+                ▶ Démarrer BOLT
+              </button>
+              <button
+                type="button"
+                id="bolt-save-btn"
+                class="btn btn-emerald"
+                disabled
+              >
+                Enregistrer BOLT
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <!-- ZONE DRAG & DROP CSV POWERBREATHE K5 & FUSION TYMEWEAR / SMART ADAPTER -->
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h3 class="section-title">Télémétrie Post-Séance (K5 / Smart Adapter × TymeWear)</h3>
+              <p class="section-sub">
+                Importez K5 50 Hz, Smart Adapter (CSV/JSON) et ventilation TymeWear (CSV ou Intervals.icu).
+              </p>
+            </div>
+            <div class="telemetry-header-actions">
+              <button
+                type="button"
+                id="k5-clear-btn"
+                class="btn btn-ghost btn-sm"
+                hidden
+              >
+                Effacer CSV K5
+              </button>
+              <button
+                type="button"
+                id="fusion-clear-btn"
+                class="btn btn-ghost btn-sm"
+                hidden
+              >
+                Effacer Fusion
+              </button>
+            </div>
+          </div>
+
+          <div class="telemetry-fusion-actions">
+            <button
+              type="button"
+              id="tymewear-import-csv-btn"
+              class="btn btn-secondary btn-sm"
+            >
+              Importer CSV TymeWear
+            </button>
+            <input
+              type="file"
+              id="tymewear-file-input"
+              accept=".csv,text/csv"
+              hidden
+            />
+            <button
+              type="button"
+              id="tymewear-intervals-btn"
+              class="btn btn-secondary btn-sm"
+            >
+              Charger TymeWear (Intervals.icu)
+            </button>
+            <button
+              type="button"
+              id="smart-adapter-import-btn"
+              class="btn btn-secondary btn-sm"
+            >
+              Importer Smart Adapter (CSV/JSON)
+            </button>
+            <input
+              type="file"
+              id="smart-adapter-file-input"
+              accept=".csv,.json,text/csv,application/json"
+              hidden
+            />
+          </div>
+
+          <div
+            id="k5-dropzone"
+            class="k5-dropzone"
+            tabindex="0"
+            role="button"
+            aria-label="Importer un fichier CSV POWERbreathe K5"
+          >
+            <p style="margin: 0; font-weight: 600;">
+              Déposer un fichier CSV K5 ici ou cliquer pour parcourir
+            </p>
+            <p id="k5-summary-status" class="muted-note" style="margin: 0.3rem 0 0;">
+              Aucun fichier K5 importé pour cette séance.
+            </p>
+            <input
+              type="file"
+              id="k5-file-input"
+              accept=".csv,text/csv"
+              hidden
+            />
+          </div>
+
+          <div id="telemetry-fusion-card" class="telemetry-fusion-card" hidden>
+            <div class="fusion-card-header">
+              <span class="fusion-card-title">Synthèse combinée Ventilation × Pression</span>
+              <span id="fusion-source-badge" class="badge badge-cyan">Fusion active</span>
+            </div>
+            <div class="fusion-kpi-grid">
+              <div class="fusion-kpi-item">
+                <span class="fusion-kpi-label">VE moy / pic</span>
+                <span id="fusion-ve-val" class="fusion-kpi-value">—</span>
+              </div>
+              <div class="fusion-kpi-item">
+                <span class="fusion-kpi-label">Rf</span>
+                <span id="fusion-rf-val" class="fusion-kpi-value">—</span>
+              </div>
+              <div class="fusion-kpi-item">
+                <span class="fusion-kpi-label">Vt</span>
+                <span id="fusion-vt-val" class="fusion-kpi-value">—</span>
+              </div>
+              <div class="fusion-kpi-item">
+                <span class="fusion-kpi-label">Ratio Rf/Vt</span>
+                <span id="fusion-rfvt-val" class="fusion-kpi-value">—</span>
+              </div>
+              <div class="fusion-kpi-item">
+                <span class="fusion-kpi-label">Travail (J)</span>
+                <span id="fusion-work-val" class="fusion-kpi-value">—</span>
+              </div>
+              <div class="fusion-kpi-item">
+                <span class="fusion-kpi-label">Pression pic</span>
+                <span id="fusion-pressure-val" class="fusion-kpi-value">—</span>
+              </div>
+              <div class="fusion-kpi-item">
+                <span class="fusion-kpi-label">Coût (J/L)</span>
+                <span id="fusion-cost-val" class="fusion-kpi-value">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="k5-metrics-container" class="table-scroll" hidden>
+            <table class="k5-table">
+              <thead>
+                <tr>
+                  <th>Cycle</th>
+                  <th>Durée (s)</th>
+                  <th>Volume (L)</th>
+                  <th>Pression pic (cmH₂O)</th>
+                  <th>Débit pic (L/s)</th>
+                  <th>Travail (J)</th>
+                  <th>Puissance moy (W)</th>
+                </tr>
+              </thead>
+              <tbody id="k5-table-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- LISTE DES EXERCICES -->
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h3 class="section-title">Exercices de la Séance</h3>
+              <p class="section-sub">
+                Ajustez séries, répétitions, charge et taux de complétion.
+              </p>
+            </div>
+            <button
+              type="button"
+              id="step2-add-exercise-btn"
+              class="btn btn-secondary btn-sm"
+            >
+              + Ajouter depuis Catalogue
+            </button>
+          </div>
+
+          <div id="session-exercise-list" class="exercise-list"></div>
+        </article>
+
+        <!-- SAISIE SPO2 MIN, BOLT & RPE BORG -->
+        <article class="card">
+          <h3 class="section-title" style="margin-bottom: 0.75rem;">
+            Ressenti &amp; Sécurité Physiologique
+          </h3>
+          <div class="telemetry-inputs-grid">
+            <label class="field-label">
+              RPE Dyspnée Borg (0–10)
+              <input
+                type="number"
+                id="input-borg-rpe"
+                class="input"
+                min="0"
+                max="10"
+                step="1"
+                value="5"
+              />
+            </label>
+            <label class="field-label">
+              SpO₂ minimale mesurée (%)
+              <input
+                type="number"
+                id="input-spo2-min"
+                class="input"
+                min="50"
+                max="100"
+                step="1"
+                placeholder="Ex. 94"
+              />
+            </label>
+            <label class="field-label">
+              Score BOLT séance (s)
+              <input
+                type="number"
+                id="input-bolt-sec"
+                class="input"
+                min="1"
+                max="180"
+                step="1"
+                placeholder="Ex. 30"
+              />
+            </label>
+          </div>
+          <label class="field-label" style="margin-top: 0.75rem;">
+            Notes athlète (optionnel)
+            <textarea
+              id="input-session-notes"
+              class="textarea"
+              style="min-height: 70px; font-family: inherit;"
+              placeholder="Sensations diaphragmatiques, congestion nasale, qualité de récupération..."
+            ></textarea>
+          </label>
+        </article>
+      </section>
+
+      <!-- =================================================================
+           ÉTAPE 3 : BILAN FINAL, ALERTES, MARKDOWN & PUSH INTERVALS.ICU
+           ================================================================= -->
+      <section id="step-3-view" class="step-panel" hidden>
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Bilan Télémétrique Final</h2>
+              <p class="section-sub">
+                Calcul neuro-symbolique exact et export Intervals.icu (`[TELEMETRY_JSON]`).
+              </p>
+            </div>
+            <button
+              type="button"
+              id="back-step-2-btn"
+              class="btn btn-ghost btn-sm"
+            >
+              ← Modifier Séance
+            </button>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card is-cyan">
+              <span class="kpi-label">Travail Respiratoire</span>
+              <span id="final-work-val" class="kpi-value">0 J</span>
+              <span id="final-duration-sub" class="kpi-sub">Durée : 0 min</span>
+            </div>
+            <div id="final-strain-card" class="kpi-card is-emerald">
+              <span class="kpi-label">Strain Respiratoire</span>
+              <span id="final-strain-val" class="kpi-value">0 AU</span>
+              <span id="final-strain-zone" class="kpi-sub">Zone GREEN</span>
+            </div>
+            <div class="kpi-card is-amber">
+              <span class="kpi-label">Compliance / Load</span>
+              <span id="final-compliance-val" class="kpi-value">100 %</span>
+              <span id="final-load-sub" class="kpi-sub">Load Intervals : 1</span>
+            </div>
+            <div class="kpi-card is-cyan">
+              <span class="kpi-label">S-Index / BOLT / SpO₂</span>
+              <span id="final-bio-val" class="kpi-value">—</span>
+              <span id="final-borg-sub" class="kpi-sub">Borg : 5/10</span>
+            </div>
+          </div>
+
+          <div id="final-safety-alerts" class="alert-list" style="margin-top: 0.85rem;"></div>
+        </article>
+
+        <article class="card">
+          <div class="section-header">
+            <h3 class="section-title">Aperçu Markdown &amp; `[TELEMETRY_JSON]`</h3>
+            <div class="vault-actions">
+              <button type="button" id="copy-markdown-btn" class="btn btn-ghost btn-sm">
+                Copier Markdown
+              </button>
+              <button type="button" id="queue-outbox-btn" class="btn btn-amber btn-sm">
+                Mettre en Outbox
+              </button>
+              <button type="button" id="push-intervals-btn" class="btn btn-emerald">
+                Publier sur Intervals.icu
+              </button>
+            </div>
+          </div>
+          <pre id="final-markdown-preview" class="markdown-preview"></pre>
+        </article>
+      </section>
+
+      <!-- =================================================================
+           VUE ANNUAIRE CATALOGUE (28 EXERCICES FILTRABLES)
+           ================================================================= -->
+      <section id="catalog-directory-view" class="card" hidden>
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Annuaire Scientifique WebBreath (28 Exercices)</h2>
+            <p id="directory-count-label" class="section-sub">28 / 28 exercices</p>
+          </div>
+          <button
+            type="button"
+            id="close-catalog-directory-btn"
+            class="btn btn-ghost btn-sm"
+          >
+            Fermer l'annuaire ✕
+          </button>
+        </div>
+
+        <div class="directory-toolbar">
+          <label class="field-label">
+            Recherche (nom, référence, mot-clé)
+            <input
+              type="search"
+              id="directory-search-input"
+              class="input"
+              placeholder="Ex. Romer, 30RM, Volianitis, K5, BOLT..."
+            />
+          </label>
+          <label class="field-label">
+            Catégorie
+            <select id="directory-category-select" class="select"></select>
+          </label>
+          <label class="field-label">
+            Matériel requis
+            <select id="directory-equipment-select" class="select"></select>
+          </label>
+          <label class="equip-toggle" style="min-height: 40px;">
+            <span>Uniquement mon matériel</span>
+            <input type="checkbox" id="directory-only-available" checked />
+          </label>
+        </div>
+
+        <div id="directory-grid" class="directory-grid"></div>
+      </section>
+    </main>
+
+    <!-- ===================================================================
+         TIROIR COFFRE-FORT (VAULT)
+         =================================================================== -->
+    <div id="vault-backdrop" class="vault-backdrop" hidden></div>
+    <aside
+      id="vault-drawer"
+      class="vault-drawer"
+      aria-label="Coffre-fort local WebBreath"
+      hidden
+    >
+      <div class="section-header" style="margin-bottom: 0;">
+        <div>
+          <h2 class="section-title">Coffre-Fort &amp; Matériel</h2>
+          <p class="section-sub">Stockage local unifié (`GLOBAL_ATHLETE_VAULT_V1`)</p>
+        </div>
+        <button type="button" id="close-vault-btn" class="btn btn-ghost btn-sm">
+          Fermer ✕
+        </button>
+      </div>
+
+      <div class="vault-grid">
+        <label class="field-label">
+          Intervals.icu Athlete ID
+          <input type="text" id="vault-athlete-id" class="input" placeholder="0 ou i12345" />
+        </label>
+        <label class="field-label">
+          Intervals.icu API Key
+          <input type="password" id="vault-intervals-key" class="input" autocomplete="off" />
+        </label>
+        <label class="field-label">
+          Gemini API Key
+          <input type="password" id="vault-gemini-key" class="input" autocomplete="off" />
+        </label>
+        <label class="field-label">
+          Modèle Gemini
+          <div style="display: flex; gap: 0.45rem;">
+            <input type="text" id="vault-llm-model" class="input" value="gemini-3.5-flash" />
+            <button type="button" id="vault-detect-model-btn" class="btn btn-secondary btn-sm">
+              Auto
+            </button>
+          </div>
+        </label>
+      </div>
+
+      <div>
+        <h3 class="section-title" style="font-size: 0.92rem; margin-bottom: 0.45rem;">
+          Constantes Physiologiques de Référence
+        </h3>
+        <div class="vault-ref-grid">
+          <label class="field-label">
+            S-Index (cmH₂O)
+            <input type="number" id="vault-s-index" class="input" min="10" max="350" />
+          </label>
+          <label class="field-label">
+            MEP (cmH₂O)
+            <input type="number" id="vault-mep" class="input" min="10" max="350" />
+          </label>
+          <label class="field-label">
+            BOLT (s)
+            <input type="number" id="vault-bolt" class="input" min="1" max="180" />
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="section-title" style="font-size: 0.92rem; margin-bottom: 0.45rem;">
+          Profil Matériel Respiratoire (9 équipements)
+        </h3>
+        <div id="vault-equipment-toggles" class="equipment-toggles"></div>
+      </div>
+
+      <div class="vault-grid">
+        <label class="field-label">
+          Webhook Google Drive (Apps Script)
+          <input
+            type="url"
+            id="vault-drive-url"
+            class="input"
+            placeholder="https://script.google.com/macros/s/.../exec"
+          />
+        </label>
+        <label class="field-label">
+          Secret Webhook Drive
+          <input type="password" id="vault-drive-secret" class="input" autocomplete="off" />
+        </label>
+      </div>
+
+      <div class="vault-actions">
+        <button type="button" id="vault-save-btn" class="btn btn-primary">
+          Enregistrer
+        </button>
+        <button type="button" id="vault-provision-fields-btn" class="btn btn-secondary btn-sm">
+          Champs Intervals.icu
+        </button>
+        <button type="button" id="vault-drive-sync-btn" class="btn btn-secondary btn-sm">
+          Sync Drive
+        </button>
+        <button type="button" id="vault-export-btn" class="btn btn-ghost btn-sm">
+          Exporter JSON
+        </button>
+        <button type="button" id="vault-import-btn" class="btn btn-ghost btn-sm">
+          Importer JSON
+        </button>
+        <input type="file" id="vault-import-input" accept=".json,application/json" hidden />
+        <button type="button" id="vault-reset-btn" class="btn btn-coral btn-sm">
+          Réinitialiser Matériel
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===================================================================
+         MODALE GUIDE EXERCICE SVG ANIMÉ
+         =================================================================== -->
+    <div id="guide-modal" class="modal-overlay" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="guide-modal-title">
+        <div class="section-header" style="margin-bottom: 0;">
+          <div>
+            <h2 id="guide-modal-title" class="section-title">Guide Technique</h2>
+            <p id="guide-modal-ref" class="science-ref-badge"></p>
+          </div>
+          <button type="button" id="close-guide-modal-btn" class="btn btn-ghost btn-sm">
+            Fermer ✕
+          </button>
+        </div>
+
+        <div id="guide-modal-svg" class="directory-svg-preview"></div>
+        <p id="guide-modal-setup" class="section-sub" style="color: var(--text-primary);"></p>
+
+        <div>
+          <strong style="font-size: 0.85rem; color: var(--cyan);">Exécution pas à pas</strong>
+          <ul id="guide-modal-execution" class="guide-list"></ul>
+        </div>
+
+        <div>
+          <strong style="font-size: 0.85rem; color: var(--coral);">Erreurs à éviter</strong>
+          <ul id="guide-modal-errors" class="guide-list"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         MODALE CONSTRUCTEUR LIBRE
+         =================================================================== -->
+    <div id="free-builder-modal" class="modal-overlay" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="free-builder-title">
+        <div class="section-header" style="margin-bottom: 0;">
+          <h2 id="free-builder-title" class="section-title">Constructeur de Séance Libre</h2>
+          <button type="button" id="close-free-builder-btn" class="btn btn-ghost btn-sm">
+            Fermer ✕
+          </button>
+        </div>
+
+        <label class="field-label">
+          Titre de la séance
+          <input
+            type="text"
+            id="free-builder-name-input"
+            class="input"
+            placeholder="Ex. Bloc Force K5 + Résonance Vagale"
+          />
+        </label>
+
+        <div style="display: flex; gap: 0.5rem; align-items: end;">
+          <label class="field-label" style="flex: 1;">
+            Ajouter un exercice du catalogue
+            <select id="free-builder-select" class="select"></select>
+          </label>
+          <button type="button" id="free-builder-add-btn" class="btn btn-secondary">
+            + Ajouter
+          </button>
+        </div>
+
+        <div id="free-builder-items" class="exercise-list"></div>
+
+        <div class="vault-actions" style="justify-content: flex-end;">
+          <button type="button" id="free-builder-start-btn" class="btn btn-primary">
+            Lancer la séance libre →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         MODALE IMPORT MARKDOWN
+         =================================================================== -->
+    <div id="md-import-modal" class="modal-overlay" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="md-import-title">
+        <div class="section-header" style="margin-bottom: 0;">
+          <h2 id="md-import-title" class="section-title">Importer une Séance Markdown</h2>
+          <button type="button" id="close-md-import-btn" class="btn btn-ghost btn-sm">
+            Fermer ✕
+          </button>
+        </div>
+        <p class="muted-note" style="margin: 0;">
+          Collez un texte structuré (ex. `2x30 K5 @ 80 cmH2O` + `1x300s Vagal 0.1 Hz`). Utilise Gemini si configuré, sinon le parseur déterministe hors-ligne.
+        </p>
+        <textarea
+          id="md-import-textarea"
+          class="textarea"
+          placeholder="# Séance RMT Matin&#10;- 2x30 IMT Force 30RM K5 @ 80 cmH2O&#10;- 1x300s Résonance Vagale 0.1 Hz"
+        ></textarea>
+        <div class="vault-actions" style="justify-content: flex-end;">
+          <button type="button" id="md-import-submit-btn" class="btn btn-primary">
+            Analyser &amp; Charger →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-banner" class="toast-banner" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>
